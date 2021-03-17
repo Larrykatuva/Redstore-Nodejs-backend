@@ -1,0 +1,15 @@
+################# packages installed ##################
+npm install express
+npm install -g nodemon
+npm install dotenv
+npm install --save sequelize
+npm install --save mysql2
+npm install http-errors
+npm install --save-dev sequelize-cli
+npm install bcryptjs
+npm install nodemailer
+npm install jsonwebtoken
+
+
+
+npx sequelize-cli init
