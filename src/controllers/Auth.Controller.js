@@ -11,12 +11,7 @@ module.exports = {
 
     createNewUser: async(req, res, next) => {
         const{
-            body: {
-                username,
-                email,
-                password
-            },
-        } = req;
+            body: { username, email, password }, } = req;
 
         if(!username){
             return res
@@ -100,7 +95,7 @@ module.exports = {
             next(createError(
                 error.status,
                 error.message
-            ))
+            ));
         }
     },
 
@@ -114,11 +109,7 @@ module.exports = {
                     .send({ error: handleAuthErrors('AUR_01', 401, 'token') });
             }else{
                 try{
-                    User.update({"is_verified": true},{
-                        where: {
-                            id: id
-                        }
-                    });
+                    User.update({"is_verified": true},{ where: { id: id } });
                     return res
                         .status(200)
                         .send({
@@ -132,9 +123,7 @@ module.exports = {
     },
 
     loginUser: async (req, res, next) => {
-        const {
-            body: { email, password }
-        } = req;
+        const { body: { email, password } } = req;
 
         if(!email){
             return res
@@ -148,11 +137,7 @@ module.exports = {
         }
 
         try {
-            const user = await User.findOne({
-                where: {
-                    email: email
-                }
-            });
+            const user = await User.findOne({ where: { email: email } });
             if(!user){
                 return res
                     .status(400)
@@ -185,5 +170,96 @@ module.exports = {
         } catch (error) {
             next(createError(error.status, error.message));
         }
+    },
+
+    resetPasswordLink: async (req, res, next) => {
+        const { body: { email } } = req;
+
+        if(!email){
+            return res
+                .status(400)
+                .send({ error: handleUserErrors('USR_08', 400, 'email')});
+        }
+        try {
+            const user = await User.findOne({ where: { email: email } });
+            if(!user){
+                return  res
+                    .status(400)
+                    .send('USR_05', 400, 'email');
+            }
+            if(user){
+                const access_token = await jwt.sign(
+                    {user: user}, 
+                    process.env.PRIVATE_KEY
+                );
+                const myURL = new URL(
+                    'http://localhost:3000/auth/new-password/'
+                    +user.id+
+                    '/'
+                    +access_token
+                );
+                const transporter = nodemailer.createTransport({
+                    service: 'gmail',
+                    auth: {
+                    user: process.env.EMAIL,
+                    pass: process.env.EMAIL_PASS,
+                    }
+                });
+                var mailOptions = {
+                    from: process.env.EMAIL,
+                    to: email,
+                    subject: 'Account Activation',
+                    html: `
+                        <h2>Use this link to reset your password</h2>
+                        <p>${myURL.href}</p>`
+                };
+                transporter.sendMail(mailOptions, function(error, info){
+                    if (error) {
+                        next(createError(
+                            409, 
+                            "Error when sending the email")
+                        ); 
+                    } else {
+                        res.status(200).send({
+                            error: false,
+                            message: "Email send successfully"
+                        });
+                    }
+                });
+            }
+        } catch (error) {
+            next(createError(error.status, error.message));
+        }
+    },
+
+    setNewPassword: async (req, res, next) => {
+        const id = req.params.id;
+        const token = req.params.token;
+        const password = req.body.password;
+
+        if(!password){
+            return res
+                .status(400)
+                .send({ error: handleUserErrors('USR_02', 400, 'password')});
+        }
+        jwt.verify(token, process.env.PRIVATE_KEY, (err, verifiedJwt) => {
+            if(err){
+                return res
+                    .status(401)
+                    .send({error: handleAuthErrors('AUR_01', 401, 'token')});
+            }
+            try {
+                const salt = Bcrypt.genSaltSync(10);
+                const hashPassword = Bcrypt.hashSync( password, salt );
+                User.update({"password": hashPassword},{ where: { id: id } });
+                res.status(200)
+                    .send({
+                        error: false,
+                        message: "Password reset successfully"
+                });
+            } catch (error) {
+                next(createError(error.status, error.message));
+            }
+        });
     }
 }

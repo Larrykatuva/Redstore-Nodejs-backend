@@ -5,7 +5,8 @@ const Errors = {
     USR_04: 'The email already exists.',
     USR_05: "The email doesn't exist.",
     USR_06: 'Password is too short',
-    USR_07: 'Username is required'
+    USR_07: 'Username is required',
+    USR_08: 'Email must be provided'
 };
 
 
