@@ -3,23 +3,35 @@ const bp = require('body-parser');
 const createError = require('http-errors');
 const dotenv = require('dotenv').config();
 const { Sequelize } = require('sequelize');
+const jwt = require('jsonwebtoken');
+const authenticateToken = require('./src/middleware/auth');
+const { JsonWebTokenError } = require('jsonwebtoken');
 
 
 const app = express();
 app.use(bp.json());
 
 
-
-
-
 //Importing routes
-const AuthRoute = require('./src/routes/auth.routes');
- app.use('/auth', AuthRoute);
+const AuthRoutes = require('./src/routes/auth.routes');
+const ShopRoutes = require('./src/routes/shop.routes');
+app.use('/auth', AuthRoutes);
+app.use('/user/shop', ShopRoutes);
 
 
-app.get('/test', (req, res, next) => {
-    res.send("request received");
-});
+// app.get('/test',  authenticateToken, (req, res, next) => {
+//     jwt.verify(req.token, process.env.PRIVATE_KEY, (err, user) => {
+//         if(err){
+//             next(createError(
+//                 err.status,
+//                 err.message
+//             ));
+//         }
+//         res.send({
+//             user: user
+//         });
+//     });
+// });
 
 
 app.use((req, res, next) => {
@@ -29,14 +41,24 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
     res.status(err.status || 500)
     res.send({
-        error: true,
-        errorMessage: {
+        error: {
             status: err.status || 500,
             message: err.message
         }
     })
 })
 
+function verifyToken(req, res, next){
+    const bearerHeader = req.headers['authorization'];
+    if(typeof bearerHeader !== 'undefined'){
+        const bearer = bearerHeader.split(' ');
+        const bearerToken = bearer[1];
+        req.token = bearerToken;
+        next();
+    }else{
+        res.sendStatus(403);
+    }
+}
 
 
 
