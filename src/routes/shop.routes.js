@@ -3,8 +3,9 @@ const router = express.Router();
 const authenticateToken = require('../middleware/auth');
 const ShopController = require('../controllers/Shop.Controller');
 
-
-router.post('/create-shop', authenticateToken, ShopController.createNewShop);
-router.post('/update-shop', authenticateToken, ShopController.updateShop);
+router.get('/', authenticateToken, ShopController.getUserShop);
+router.post('/create', authenticateToken, ShopController.createNewShop);
+router.post('/update', authenticateToken, ShopController.updateShop);
+router.get('/delete', authenticateToken, ShopController.deleteShop);
 
 module.exports = router;

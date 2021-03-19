@@ -3,9 +3,40 @@ const User = require("../sequelize/models").User;
 const createError = require('http-errors');
 const jwt = require('jsonwebtoken');
 const handleShopErrors =  require('../errors/shop');
+const db = require('../sequelize/models/index');
 
 
 module.exports = {
+
+    getUserShop: async (req, res, next) => {
+        const { body: { id } } = req;
+        try {
+            const shop = await db.User.findOne({
+                attributes: [
+                    'username',
+                    'email'
+                ],
+                where: {
+                    id,
+                },
+                include: [
+                    db.Shop,
+                ],
+            },
+            );
+            if(shop){
+                return res.status(200).send(shop);
+            }
+            return res
+                .status(404)
+                .send({error: handleShopErrors('SAR_06', 404, 'shop')});
+        } catch (error) {
+            next(createError(
+                error.status,
+                error.message
+            ));
+        }
+    },
 
     createNewShop: async (req, res, next) => {
         const{ body: { name, desc, location } } = req
@@ -27,7 +58,7 @@ module.exports = {
         try {
             const shop = await Shop.findOne({
                 where: { 
-                    shopName: req.body.name 
+                    shopName: req.body.name
                 } 
             });
             console.log(shop);
@@ -44,7 +75,7 @@ module.exports = {
                     ));
                 }
                 if(user){
-                    const newShop = Shop.create({
+                    const newShop = db.Shop.create({
                         shopName: req.body.name,
                         shopDesc: req.body.desc,
                         shopLocation: req.body.location,
@@ -109,6 +140,27 @@ module.exports = {
                 error: false,
                 message: "Shop updated successfully"
             });
+        }
+    },
+
+    deleteShop: async (req, res, next) => {
+        const { body: { id } } = req;
+        try {
+            await db.Shop.destroy({
+                where: {
+                    userId: id
+                }
+            });
+            return res
+                .status(200)
+                .send({
+                    error: false,
+                    message: "Shop deleted successfully"});
+        } catch (error) {
+            next(createError(
+                error.status,
+                error.message,
+            ))
         }
     }
 }
